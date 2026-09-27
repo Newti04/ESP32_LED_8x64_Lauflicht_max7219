@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ESP32-S3 Matrix Setup</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }}
+        .container {{ max-width: 750px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+        h2 {{ color: #007bff; text-align: center; }}
+        h3 {{ margin-top: 25px; border-bottom: 2px solid #e9ecef; padding-bottom: 5px; color: #495057; }}
+        label {{ font-weight: bold; display: block; margin-top: 12px; }}
+        input[type="text"], input[type="number"] {{ width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }}
+        
+        .topic-row {{ display: flex; gap: 10px; margin-bottom: 10px; background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #007bff; align-items: flex-end; }}
+        .col-prefix {{ flex: 1.2; }}
+        .col-topic {{ flex: 2.5; }}
+        .col-unit {{ flex: 0.8; }}
+        
+        .btn-container {{ display: flex; gap: 10px; margin-top: 10px; }}
+        .btn {{ padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.9em; }}
+        .btn-add {{ background-color: #007bff; color: white; }}
+        .btn-add:hover {{ background-color: #0056b3; }}
+        .btn-remove {{ background-color: #dc3545; color: white; }}
+        .btn-remove:hover {{ background-color: #bd2130; }}
+        
+        input[type="submit"] {{ background-color: #28a745; color: white; padding: 12px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 25px; font-size: 1.05em; font-weight: bold; }}
+        input[type="submit"]:hover {{ background-color: #218838; }}
+        .status-box {{ background-color: #e9ecef; padding: 10px; border-radius: 4px; margin-top: 20px; font-family: monospace; font-size: 0.9em; line-height: 1.5; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Matrix Anzeige Konfiguration</h2>
+        <form action="/save" method="POST" onsubmit="return validateAndPrepareData()">
+            
+            <h3>WLAN & MQTT Basis</h3>
+            <label>WLAN SSID (Ziel-Netzwerk):</label>
+            <input type="text" id="ssid" name="ssid" value="{ssid}" required>
+            
+            <label>WLAN Passwort:</label>
+            <input type="text" id="password" name="password" value="{password}">
+            
+            <label>MQTT Server IP:</label>
+            <input type="text" id="mqtt_server" name="mqtt_server" value="{mqtt_server}" required>
+            
+            <label>MQTT Port:</label>
+            <input type="number" id="mqtt_port" name="mqtt_port" value="{mqtt_port}" required>
+            
+            <h3>MQTT Topics & Einheiten</h3>
+            <input type="hidden" id="hidden_topics" name="topics" value="">
+            <input type="hidden" id="hidden_prefixes" name="prefixes" value="">
+            <input type="hidden" id="hidden_units" name="units" value="">
+            
+            <div id="topics_container">
+                <!-- Zeilen werden per JS geladen -->
+            </div>
+            
+            <div class="btn-container">
+                <button type="button" class="btn btn-add" onclick="addTopicRow('', '', '')">+ Zeile hinzufügen</button>
+                <button type="button" class="btn btn-remove" onclick="removeLastRow()">- Letzte Zeile löschen</button>
+            </div>
+            
+            <h3>Display Einstellungen</h3>
+            <label>Helligkeit (0 - 15):</label>
+            <input type="number" name="brightness" min="0" max="15" value="{brightness}">
+            
+            <label>Scroll-Verzögerung (ms pro Pixel):</label>
+            <input type="number" name="speed" min="5" max="200" value="{speed}">
+            
+            <input type="submit" value="Konfiguration Speichern & Aktualisieren">
+        </form>
+        
+        <div class="status-box">
+            <strong>Aktueller Status:</strong><br>
+            WLAN-Modus: {wifi_mode}<br>
+            Laufschrift: {laufschrift_text}<br>
+            MQTT Verbunden: {mqtt_connected}
+        </div>
+    </div>
+
+    <script>
+        const rawTopics = "{topics}";
+        const rawPrefixes = "{prefixes}";
+        const rawUnits = "{units}";
+
+        const initialTopics = rawTopics ? rawTopics.split(',') : [];
+        const initialPrefixes = rawPrefixes ? rawPrefixes.split(',') : [];
+        const initialUnits = rawUnits ? rawUnits.split(',') : [];
+        
+        const container = document.getElementById('topics_container');
+
+        function addTopicRow(prefix, topic, unit) {{
+            const pStr = (prefix || '').trim();
+            const tStr = (topic || '').trim();
+            const uStr = (unit || '').trim();
+            const rowCount = container.children.length + 1;
+            
+            const row = document.createElement('div');
+            row.className = 'topic-row';
+            
+            // Reines JavaScript ohne Backticks verhindert Kollisionen mit Pythons .format()
+            row.innerHTML = 
+                '<div class="col-prefix">' +
+                    '<label>Präfix #' + rowCount + ':</label>' +
+                    '<input type="text" class="input-prefix" value="' + pStr + '" placeholder="z.B. Wasser:">' +
+                '</div>' +
+                '<div class="col-topic">' +
+                    '<label>MQTT Topic #' + rowCount + ':</label>' +
+                    '<input type="text" class="input-topic" value="' + tStr + '" placeholder="esp32s3/sensor" oninput="cleanTopicInput(this)">' +
+                '</div>' +
+                '<div class="col-unit">' +
+                    '<label>Einheit:</label>' +
+                    '<input type="text" class="input-unit" value="' + uStr + '" placeholder="z.B. %">' +
+                '</div>';
+                
+            container.appendChild(row);
+        }}
+
+        function removeLastRow() {{
+            if (container.children.length > 1) {{
+                container.removeChild(container.lastChild);
+            }}
+        }}
+
+        function cleanTopicInput(input) {{
+            input.value = input.value.replace(/,/g, '');
+        }}
+
+        function validateAndPrepareData() {{
+            document.getElementById('mqtt_server').value = document.getElementById('mqtt_server').value.trim();
+            document.getElementById('ssid').value = document.getElementById('ssid').value.trim();
+
+            const prefixInputs = document.querySelectorAll('.input-prefix');
+            const topicInputs = document.querySelectorAll('.input-topic');
+            const unitInputs = document.querySelectorAll('.input-unit');
+            
+            let prefixesArray = [];
+            let topicsArray = [];
+            let unitsArray = [];
+            let validTopicCount = 0;
+            
+            for(let i = 0; i < topicInputs.length; i++) {{
+                let topicValue = topicInputs[i].value.trim();
+                let prefixValue = prefixInputs[i].value.trim();
+                let unitValue = unitInputs[i].value.trim();
+                
+                if(topicValue === '' && prefixValue === '' && unitValue === '') {{
+                    continue;
+                }}
+                
+                if(topicValue === '') {{
+                    alert('Fehler in Zeile ' + (i + 1) + ': Das Topic-Feld darf nicht leer sein.');
+                    topicInputs[i].focus();
+                    return false;
+                }}
+                
+                if(prefixValue === '') prefixValue = ' ';
+                if(unitValue === '') unitValue = ' ';
+                
+                if(topicValue.includes('#') || topicValue.includes('+')) {{
+                    alert('Warnung in Zeile ' + (i + 1) + ': Wildcards ist hier nicht erlaubt.');
+                    topicInputs[i].focus();
+                    return false;
+                }}
+                
+                prefixesArray.push(prefixValue);
+                topicsArray.push(topicValue);
+                unitsArray.push(unitValue);
+                validTopicCount++;
+            }}
+            
+            if(validTopicCount === 0) {{
+                alert('Fehler: Mindestens ein MQTT-Topic eintragen!');
+                return false;
+            }}
+            
+            document.getElementById('hidden_topics').value = topicsArray.join(',');
+            document.getElementById('hidden_prefixes').value = prefixesArray.join(',');
+            document.getElementById('hidden_units').value = unitsArray.join(',');
+            
+            return true;
+        }}
+
+        const maxRows = Math.max(initialTopics.length, initialPrefixes.length);
+        if (maxRows > 0 && rawTopics !== '') {{
+            for(let i = 0; i < maxRows; i++) {{
+                addTopicRow(initialPrefixes[i] || '', initialTopics[i] || '', initialUnits[i] || '');
+            }}
+        }} else {{
+            addTopicRow('', '', '');
+        }}
+    </script>
+</body>
+</html>
+
