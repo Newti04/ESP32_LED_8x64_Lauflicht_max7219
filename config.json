@@ -1,2 +1,3 @@
 {"ssid": "Wlan.Ssid", "password": "YourWlanPwd", "topics": "esp32s3/frischwasser,gaslevel/temperature,truma/sensor/current_room_temperature/state", "prefixes": "Wa:,To:,Ti:", "mqtt_server": "192.168.xxx.yyy", "mqqt_port": 1883, "brightness": 2, "speed": 25}
- 
+# with json Auswertung
+# {"ssid": "Wlan.Ssid", "password": "YourWlanPwd", "topics": "esp32s3/frischwasser/liter:volume_liters,gaslevel:temperature,truma/sensor/current_room_temperature/state", "prefixes": "Wa:,To:,Ti:", "mqtt_server": "192.168.xxx.yyy", "mqqt_port": 1883, "brightness": 2, "speed": 25}
