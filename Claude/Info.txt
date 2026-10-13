@@ -1,0 +1,21 @@
+Das Projekt liegt als laufschrift.zip bereit. Ich konnte es nur mit einem echten MicroPython auf dem PC mit simulierter Hardware testen, nicht auf dem ESP32-S3.
+Getestet ist:
+Alle Python-Dateien kompilieren.
+Text, Umlaute und Scrollen funktionieren.
+Ein Test-MQTT-Broker lieferte {"level_1": 77} an WoMo.gaslevel:level_1, und die Anzeige las den Wert als Gas 77%. Nach einer Konfig-Änderung verband sich der Client neu.
+Die Webseiten und die Speicher-Schnittstellen antworten, und ungültige Pins werden abgewiesen.
+Nicht getestet ist die echte Hardware: WLAN/Hotspot, die Pin-Ansteuerung und die Ausrichtung deiner Module.
+Das kann es:
+Hotspot: Er startet, solange kein WLAN eingerichtet oder erreichbar ist (Name Laufschrift-XXXX, Passwort laufschrift). Er schaltet sich 60 s nach erfolgreicher Verbindung ab oder bleibt per Haken dauerhaft an.
+Wiederverbinden: WLAN versucht es alle 30 s erneut, MQTT mit steigender Wartezeit bis 30 s.
+Asynchroner Webserver: Er blockiert die Anzeige nicht. Der MQTT-Client ist selbst geschrieben und asynchron, weil umqtt.simple beim Verbinden den ganzen Loop anhalten würde.
+index.html: Zeigt WLAN- und MQTT-Status, den aktuellen Text und alle Werte, aktualisiert alle 2 s.
+config.html:
+WLAN mit Netzwerksuche, Hotspot und MQTT.
+Laufrichtung links/rechts/oben/unten, Geschwindigkeit, Helligkeit und Pause je Seite (nur bei oben/unten).
+Topic-Zeilen mit Beschreibung, Einheit und topic:schluessel. Verschachtelt geht topic:a.b, Listen gehen mit topic:werte.0.
+config_hw.html: DIN, CLK, CS, Modulanzahl und Ausrichtung (Drehen/Spiegeln, Modulreihenfolge). Änderungen wirken sofort ohne Neustart.
+Zeichen: Umlaute, ß, °, ², ³, € und µ werden dargestellt.
+Falls die Schrift auf deinen Modulen gedreht oder gespiegelt aussieht, ändere auf config_hw.html die Ausrichtungs-Haken und speichere. Bei FC-16-Modulen hilft meist zuerst „Zeilen/Spalten tauschen“. Standard-Pins sind DIN=11, CLK=12, CS=10.
+Der Webserver hat keinen Passwortschutz, er ist nur über WLAN oder Hotspot erreichbar. Einen Hardware-Watchdog gibt es als Schalter USE_WDT in main.py, er ist standardmäßig aus.
+Das Aufspielen (mpremote oder Thonny, inklusive Ordner www/) steht in der README im Paket.
