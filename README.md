@@ -2,7 +2,7 @@ Hardware:
 
 1x ESP32-S3
 
-8x Led-Matrix 8x8 in einer Reihe (HX711_DOUT_1 = 16, HX711_SCK_1 = 17, HX711_DOUT_2 = 32, HX711_SCK_2 = 27)
+8x Led-Matrix 8x8 in einer Reihe mit Treiber IC MAX7313 (HX711_DOUT_1 = 16, HX711_SCK_1 = 17, HX711_DOUT_2 = 32, HX711_SCK_2 = 27)
 
 
 
