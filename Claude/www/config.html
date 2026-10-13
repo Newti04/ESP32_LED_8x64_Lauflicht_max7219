@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laufschrift – Einstellungen</title>
+<style>
+:root{--bg:#f4f5f7;--fg:#1c1f24;--card:#fff;--bd:#d9dde3;--ok:#1a8f3c;--bad:#c62828;--acc:#1565c0;--mut:#6b7380}
+@media(prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e6e8eb;--card:#1e2126;--bd:#343941;--ok:#4cc26b;--bad:#ef6b6b;--acc:#6aa8f0;--mut:#98a0ab}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,sans-serif}
+nav{display:flex;gap:4px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+nav a{padding:6px 12px;border-radius:6px;color:var(--fg);text-decoration:none}
+nav a.on{background:var(--acc);color:#fff}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+h1{font-size:1.3rem;margin:0 0 12px}h2{font-size:1rem;margin:0 0 10px;color:var(--acc)}
+label{display:block;font-size:.85rem;color:var(--mut);margin:8px 0 2px}
+input,select{width:100%;padding:8px 10px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--bd);border-radius:6px}
+input[type=checkbox]{width:auto;margin-right:6px}
+input[type=range]{padding:0}
+.chk{display:flex;align-items:center;margin-top:10px;color:var(--fg);font-size:1rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+.trow{display:grid;grid-template-columns:1.2fr .5fr 2fr auto;gap:6px;margin-bottom:6px;align-items:center}
+@media(max-width:520px){.trow{grid-template-columns:1fr 1fr;border-bottom:1px dashed var(--bd);padding-bottom:8px}.trow input:nth-child(3){grid-column:1/3}}
+button{font:inherit;padding:8px 14px;border-radius:6px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+button.x{color:var(--bad);padding:8px 10px}
+.hint{font-size:.82rem;color:var(--mut);margin-top:6px}
+#msg{position:sticky;bottom:10px;padding:10px 14px;border-radius:8px;color:#fff;display:none;margin-top:8px}
+</style>
+</head>
+<body>
+<nav><a href="/index.html">Status</a><a class="on" href="/config.html">Einstellungen</a><a href="/config_hw.html">Hardware</a></nav>
+<main>
+<h1>Einstellungen</h1>
+
+<div class="card"><h2>WLAN</h2>
+<div class="grid">
+<div><label for="wssid">SSID</label><input id="wssid" list="nets" maxlength="32" autocomplete="off"><datalist id="nets"></datalist></div>
+<div><label for="wpw">Passwort</label><input id="wpw" type="password" maxlength="63" autocomplete="new-password"></div>
+</div>
+<div style="margin-top:10px"><button type="button" id="scan">Netzwerke suchen</button></div>
+<div class="hint">Passwort leer lassen = gespeichertes Passwort behalten. Die Suche unterbricht die Anzeige kurz.</div>
+</div>
+
+<div class="card"><h2>Hotspot (Access Point)</h2>
+<div class="grid">
+<div><label for="assid">Name (leer = automatisch)</label><input id="assid" maxlength="32"></div>
+<div><label for="apw">Passwort (mind. 8 Zeichen, sonst offen)</label><input id="apw" maxlength="63"></div>
+</div>
+<label class="chk"><input type="checkbox" id="aalways">Hotspot immer aktiv lassen</label>
+<div class="hint">Ohne Haken läuft der Hotspot nur, solange keine WLAN-Verbindung besteht.</div>
+</div>
+
+<div class="card"><h2>MQTT</h2>
+<label class="chk"><input type="checkbox" id="men">MQTT aktiv</label>
+<div class="grid">
+<div><label for="mhost">Server</label><input id="mhost" placeholder="192.168.1.10"></div>
+<div><label for="mport">Port</label><input id="mport" type="number" min="1" max="65535" value="1883"></div>
+<div><label for="muser">Benutzer</label><input id="muser" autocomplete="off"></div>
+<div><label for="mpw">Passwort</label><input id="mpw" type="password" autocomplete="new-password"></div>
+<div><label for="mcid">Client-ID (leer = automatisch)</label><input id="mcid"></div>
+</div>
+</div>
+
+<div class="card"><h2>Anzeige</h2>
+<div class="grid">
+<div><label for="dir">Laufrichtung</label>
+<select id="dir"><option value="left">nach links ←</option><option value="right">nach rechts →</option><option value="up">nach oben ↑</option><option value="down">nach unten ↓</option></select></div>
+<div><label for="spd">Geschwindigkeit: <b id="spdv"></b> px/s</label><input id="spd" type="range" min="5" max="120" step="5"></div>
+<div><label for="bri">Helligkeit: <b id="briv"></b> / 15</label><input id="bri" type="range" min="0" max="15"></div>
+<div><label for="hold">Pause je Seite (nur oben/unten, ms)</label><input id="hold" type="number" min="0" max="30000" step="100"></div>
+</div>
+</div>
+
+<div class="card"><h2>Topics (Laufschrift-Werte)</h2>
+<div class="trow" style="font-size:.8rem;color:var(--mut)"><span>Beschreibung</span><span>Einheit</span><span>Topic (topic:json_schluessel)</span><span></span></div>
+<div id="rows"></div>
+<button type="button" id="add">+ Zeile</button>
+<div class="hint">Beispiel: Beschreibung <b>Gas</b>, Einheit <b>%</b>, Topic <b>WoMo.gaslevel:level_1</b> → liest vom MQTT-Topic <i>WoMo.gaslevel</i> das JSON-Feld <i>level_1</i>. Verschachtelt: <i>topic:a.b</i>, Listen: <i>topic:werte.0</i>. Ohne <i>:Schlüssel</i> wird der Payload direkt angezeigt. Umlaute, °, ³ und € werden dargestellt.</div>
+</div>
+
+<button class="p" id="save" type="button">Speichern</button>
+<div id="msg"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function msg(t,ok){const m=$("msg");m.textContent=t;m.style.background=ok?"var(--ok)":"var(--bad)";m.style.display="block";clearTimeout(msg.t);msg.t=setTimeout(()=>m.style.display="none",5000)}
+function addRow(r){
+  r=r||{};const d=document.createElement("div");d.className="trow";
+  [["desc","Beschreibung"],["unit","Einheit"],["topic","WoMo.gaslevel:level_1"]].forEach(([k,ph])=>{
+    const i=document.createElement("input");i.dataset.k=k;i.placeholder=ph;i.value=r[k]||"";i.autocomplete="off";d.appendChild(i)});
+  const b=document.createElement("button");b.type="button";b.className="x";b.textContent="✕";b.title="Zeile löschen";b.onclick=()=>d.remove();d.appendChild(b);
+  $("rows").appendChild(d);
+}
+async function load(){
+  try{
+    const c=await (await fetch("/api/config")).json();
+    $("wssid").value=c.wifi.ssid;$("wpw").placeholder=c.wifi.password_set?"(unverändert)":"";
+    $("assid").value=c.ap.ssid;$("apw").value=c.ap.password;$("aalways").checked=c.ap.always;
+    $("men").checked=c.mqtt.enabled;$("mhost").value=c.mqtt.host;$("mport").value=c.mqtt.port;
+    $("muser").value=c.mqtt.user;$("mpw").placeholder=c.mqtt.password_set?"(unverändert)":"";$("mcid").value=c.mqtt.client_id;
+    $("dir").value=c.display.direction;$("spd").value=c.display.speed;$("bri").value=c.display.brightness;$("hold").value=c.display.hold;
+    upd();
+    c.topics.forEach(addRow);if(!c.topics.length)addRow();
+  }catch(e){msg("Laden fehlgeschlagen",false)}
+}
+function upd(){$("spdv").textContent=$("spd").value;$("briv").textContent=$("bri").value}
+$("spd").oninput=$("bri").oninput=upd;
+$("add").onclick=()=>addRow();
+$("scan").onclick=async()=>{
+  $("scan").disabled=true;$("scan").textContent="Suche…";
+  try{const l=await (await fetch("/api/scan")).json();
+    $("nets").innerHTML="";l.forEach(n=>{const o=document.createElement("option");o.value=n.ssid;o.label=n.ssid+" ("+n.rssi+" dBm)";$("nets").appendChild(o)});
+    msg(l.length+" Netzwerke gefunden – SSID-Feld anklicken zur Auswahl",true);
+  }catch(e){msg("Suche nicht möglich",false)}
+  $("scan").disabled=false;$("scan").textContent="Netzwerke suchen";
+};
+$("save").onclick=async()=>{
+  const topics=[...document.querySelectorAll("#rows .trow")].map(d=>{const o={};d.querySelectorAll("input").forEach(i=>o[i.dataset.k]=i.value);return o}).filter(o=>o.topic.trim());
+  const body={
+    wifi:{ssid:$("wssid").value,password:$("wpw").value},
+    ap:{ssid:$("assid").value,password:$("apw").value,always:$("aalways").checked},
+    mqtt:{enabled:$("men").checked,host:$("mhost").value,port:+$("mport").value,user:$("muser").value,password:$("mpw").value,client_id:$("mcid").value},
+    display:{direction:$("dir").value,speed:+$("spd").value,brightness:+$("bri").value,hold:+$("hold").value},
+    topics};
+  try{
+    const r=await fetch("/api/config",{method:"POST",body:JSON.stringify(body)});
+    const j=await r.json();
+    if(j.ok){msg("Gespeichert. WLAN/MQTT verbinden sich neu.",true);$("wpw").value="";$("mpw").value="";load()}
+    else msg(j.error||"Fehler",false);
+  }catch(e){msg("Keine Antwort vom Gerät (WLAN-Wechsel?)",false)}
+};
+load();
+</script>
+</body>
+</html>

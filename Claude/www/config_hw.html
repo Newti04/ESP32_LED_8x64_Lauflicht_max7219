@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laufschrift – Hardware</title>
+<style>
+:root{--bg:#f4f5f7;--fg:#1c1f24;--card:#fff;--bd:#d9dde3;--ok:#1a8f3c;--bad:#c62828;--acc:#1565c0;--mut:#6b7380}
+@media(prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e6e8eb;--card:#1e2126;--bd:#343941;--ok:#4cc26b;--bad:#ef6b6b;--acc:#6aa8f0;--mut:#98a0ab}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,sans-serif}
+nav{display:flex;gap:4px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+nav a{padding:6px 12px;border-radius:6px;color:var(--fg);text-decoration:none}
+nav a.on{background:var(--acc);color:#fff}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+h1{font-size:1.3rem;margin:0 0 12px}h2{font-size:1rem;margin:0 0 10px;color:var(--acc)}
+label{display:block;font-size:.85rem;color:var(--mut);margin:8px 0 2px}
+input{width:100%;padding:8px 10px;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--bd);border-radius:6px}
+input[type=checkbox]{width:auto;margin-right:6px}
+.chk{display:flex;align-items:center;margin-top:10px;color:var(--fg);font-size:1rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 12px}
+button{font:inherit;padding:8px 14px;border-radius:6px;border:1px solid var(--bd);background:var(--card);color:var(--fg);cursor:pointer;margin-right:6px}
+button.p{background:var(--acc);border-color:var(--acc);color:#fff}
+.hint{font-size:.82rem;color:var(--mut);margin-top:6px}
+#msg{position:sticky;bottom:10px;padding:10px 14px;border-radius:8px;color:#fff;display:none;margin-top:8px}
+</style>
+</head>
+<body>
+<nav><a href="/index.html">Status</a><a href="/config.html">Einstellungen</a><a class="on" href="/config_hw.html">Hardware</a></nav>
+<main>
+<h1>Hardware – MAX7219</h1>
+
+<div class="card"><h2>Pin-Zuordnung (GPIO-Nummern)</h2>
+<div class="grid">
+<div><label for="din">DIN (Daten / MOSI)</label><input id="din" type="number" min="0" max="48"></div>
+<div><label for="clk">CLK (Takt / SCK)</label><input id="clk" type="number" min="0" max="48"></div>
+<div><label for="cs">CS (LOAD)</label><input id="cs" type="number" min="0" max="48"></div>
+<div><label for="mod">Anzahl Module</label><input id="mod" type="number" min="1" max="32"></div>
+</div>
+<div class="hint">Standard ESP32-S3: DIN = 11, CLK = 12, CS = 10. Nicht verwenden: GPIO 26–32 (Flash), bei Octal-PSRAM-Boards auch 33–37, außerdem 19/20 (USB). Die Änderung wirkt sofort, ohne Neustart.</div>
+</div>
+
+<div class="card"><h2>Ausrichtung der Module</h2>
+<label class="chk"><input type="checkbox" id="swap">Zeilen/Spalten tauschen (um 90° gedreht – typisch für FC-16-Module)</label>
+<label class="chk"><input type="checkbox" id="fx">Jedes Modul horizontal spiegeln</label>
+<label class="chk"><input type="checkbox" id="fy">Jedes Modul vertikal spiegeln</label>
+<label class="chk"><input type="checkbox" id="rev">Reihenfolge der Module umkehren</label>
+<div class="hint">Sieht die Schrift gespiegelt, gedreht oder vertauscht aus, einfach die Haken ändern und speichern – die Laufschrift zeigt das Ergebnis sofort. Übliche Reihenfolge bei FC-16: erst „Zeilen/Spalten tauschen“ prüfen, danach Spiegelung und Modulreihenfolge.</div>
+</div>
+
+<button class="p" id="save" type="button">Speichern &amp; anwenden</button>
+<button id="reboot" type="button">Gerät neu starten</button>
+<div id="msg"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function msg(t,ok){const m=$("msg");m.textContent=t;m.style.background=ok?"var(--ok)":"var(--bad)";m.style.display="block";clearTimeout(msg.t);msg.t=setTimeout(()=>m.style.display="none",5000)}
+async function load(){
+  try{const h=await (await fetch("/api/hw")).json();
+    $("din").value=h.din;$("clk").value=h.clk;$("cs").value=h.cs;$("mod").value=h.modules;
+    $("swap").checked=h.swap_xy;$("fx").checked=h.flip_x;$("fy").checked=h.flip_y;$("rev").checked=h.reverse;
+  }catch(e){msg("Laden fehlgeschlagen",false)}
+}
+$("save").onclick=async()=>{
+  const b={din:+$("din").value,clk:+$("clk").value,cs:+$("cs").value,modules:+$("mod").value,
+    swap_xy:$("swap").checked,flip_x:$("fx").checked,flip_y:$("fy").checked,reverse:$("rev").checked};
+  try{const j=await (await fetch("/api/hw",{method:"POST",body:JSON.stringify(b)})).json();
+    j.ok?msg("Gespeichert und angewendet",true):msg(j.error||"Fehler",false);
+  }catch(e){msg("Keine Antwort vom Gerät",false)}
+};
+$("reboot").onclick=async()=>{
+  if(!confirm("Gerät wirklich neu starten?"))return;
+  try{await fetch("/api/reboot",{method:"POST"});msg("Neustart… Seite in ca. 10 s neu laden",true)}catch(e){msg("Fehler",false)}
+};
+load();
+</script>
+</body>
+</html>

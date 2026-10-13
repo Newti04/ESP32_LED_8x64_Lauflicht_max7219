@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Laufschrift – Status</title>
+<style>
+:root{--bg:#f4f5f7;--fg:#1c1f24;--card:#fff;--bd:#d9dde3;--ok:#1a8f3c;--bad:#c62828;--warn:#b26a00;--acc:#1565c0}
+@media(prefers-color-scheme:dark){:root{--bg:#14161a;--fg:#e6e8eb;--card:#1e2126;--bd:#343941;--ok:#4cc26b;--bad:#ef6b6b;--warn:#e0a040;--acc:#6aa8f0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,sans-serif}
+nav{display:flex;gap:4px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--bd);flex-wrap:wrap}
+nav a{padding:6px 12px;border-radius:6px;color:var(--fg);text-decoration:none}
+nav a.on{background:var(--acc);color:#fff}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+h1{font-size:1.3rem;margin:0 0 12px}h2{font-size:1rem;margin:0 0 8px;color:var(--acc)}
+.row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px dashed var(--bd)}
+.row:last-child{border:0}.row span:first-child{color:#8a929c}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--bad)}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}
+.led{font:600 1.15rem ui-monospace,Menlo,Consolas,monospace;background:#0b0d10;color:#ff3b30;padding:12px 14px;border-radius:8px;overflow-wrap:anywhere;letter-spacing:.04em}
+table{width:100%;border-collapse:collapse}td{padding:4px 6px;border-bottom:1px solid var(--bd)}td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.small{font-size:.85rem;color:#8a929c}
+</style>
+</head>
+<body>
+<nav><a class="on" href="/index.html">Status</a><a href="/config.html">Einstellungen</a><a href="/config_hw.html">Hardware</a></nav>
+<main>
+<h1>Laufschrift – Status</h1>
+
+<div class="card"><h2>Angezeigter Text</h2><div class="led" id="text">…</div></div>
+
+<div class="card"><h2>WLAN</h2>
+<div class="row"><span>Verbindung</span><span><i class="dot" id="wdot"></i><b id="wstate">…</b></span></div>
+<div class="row"><span>Netzwerk</span><span id="wssid">–</span></div>
+<div class="row"><span>IP-Adresse</span><span id="wip">–</span></div>
+<div class="row"><span>Signal</span><span id="wrssi">–</span></div>
+<div class="row"><span>Hotspot</span><span id="ap">–</span></div>
+</div>
+
+<div class="card"><h2>MQTT</h2>
+<div class="row"><span>Verbindung</span><span><i class="dot" id="mdot"></i><b id="mstate">…</b></span></div>
+<div class="row"><span>Server</span><span id="mhost">–</span></div>
+<div class="row"><span>Letzte Nachricht</span><span id="mlast">–</span></div>
+<div class="row" id="merrrow" hidden><span>Fehler</span><span id="merr"></span></div>
+</div>
+
+<div class="card"><h2>Werte</h2><table id="vals"><tr><td class="small">keine Topics konfiguriert</td></tr></table></div>
+<p class="small" id="up"></p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function dur(s){if(s<60)return s+" s";if(s<3600)return Math.floor(s/60)+" min";return Math.floor(s/3600)+" h "+Math.floor(s%3600/60)+" min"}
+async function tick(){
+  try{
+    const s=await (await fetch("/api/status",{cache:"no-store"})).json();
+    const w=s.wifi,m=s.mqtt;
+    $("text").textContent=s.text;
+    $("wdot").className="dot "+(w.connected?"ok":"");
+    $("wstate").textContent=w.connected?"verbunden":(w.ssid?"getrennt – verbinde…":"nicht eingerichtet");
+    $("wssid").textContent=w.ssid||"–";
+    $("wip").textContent=w.ip||"–";
+    $("wrssi").textContent=w.rssi!=null?w.rssi+" dBm":"–";
+    $("ap").textContent=w.ap_active?("aktiv: "+w.ap_ssid+" ("+w.ap_ip+")"):"aus";
+    $("mdot").className="dot "+(m.connected?"ok":(m.enabled?"":"warn"));
+    $("mstate").textContent=!m.enabled?"deaktiviert":(m.connected?"verbunden":"getrennt");
+    $("mhost").textContent=m.host?(m.host+":"+m.port):"–";
+    $("mlast").textContent=m.last_msg_s!=null?"vor "+dur(m.last_msg_s):"–";
+    $("merrrow").hidden=!m.error||m.connected;$("merr").textContent=m.error||"";
+    const t=$("vals");t.innerHTML="";
+    if(!s.values.length)t.innerHTML='<tr><td class="small">keine Topics konfiguriert</td></tr>';
+    s.values.forEach(v=>{const r=t.insertRow();r.insertCell().textContent=v.desc||v.topic;r.insertCell().textContent=v.value+(v.unit?(/^[A-Za-z]/.test(v.unit)?" ":"")+v.unit:"")});
+    $("up").textContent="Laufzeit: "+dur(s.uptime_s);
+  }catch(e){$("wstate").textContent="Gerät nicht erreichbar";$("wdot").className="dot"}
+}
+tick();setInterval(tick,2000);
+</script>
+</body>
+</html>
